@@ -5,30 +5,33 @@ public class MagicSquares {
         chains(4);
     }
 
-    public static void/*List<Set<Integer>>*/ chains(int n){
-        int value = value(n); // calculate the value
-        List<Integer> nums = numbers(n); // create a list of all the numbers
+    public static void chains(int n){
+        int value = value(n); // calculate the magic value
+        List<Integer> nums = numbers(n); // create a list of all the number permutations 
         List<Set<Integer>> combos = getSubsets(nums, n); // find all unique sets of size n
         List<Set<Integer>> filteredComboList = filteredCombos(combos, value, n); // filter those sets to those that sum up to the calculated value.
-        //HashMap<Integer, Integer> frequencies = frequenciesMap(filteredComboList); // create a hashmap of frequencies, then use that information to create one single magic square.
-        //HashMap<Set, Integer> pieceFrequencies = piecesFrequencyMap(filteredComboList ,frequencies); // create a hashmap of the sum of the frequencies of the given pieces
+
+        // At this point all we have are the subsets of size n that sum to the magic value
+
         
-        //System.out.println(toString(filteredComboList) + "\n");
-        //System.out.println(frequencies + "\n");
-        //System.out.println("Size: " + filteredComboList.size() + "\n");
-        //System.out.println(rowFilterLayer1((filteredComboList)) + "\n\n\n");
-        List<List<Set<Integer>>> all = new ArrayList<>(); //rowFilterLayer1(filteredComboList);
-        for(int i = 0; i < n ; i++){ // This works but it puts all the rows in different orders (is that necessary?)
-            all = rowFilterLayerPermutations(all, filteredComboList);
+        List<List<Set<Integer>>> all = new ArrayList<>(); // This will be the placeholder that will eventually have all the row groupings
+
+        for(int i = 0; i < n ; i++){ // We need to do this method n times because we are filling up each row grouping one row at a time
+            all = rowFilterLayerPermutations(all, filteredComboList); // This method takes the given built rows and adds as many possible solutions to them.
         }
-        //int size = all.size();
+        // At this point we know that all the rows have been discovered, but this also implies that all the columns are in "all".
+        // We must find a way to filter these out.
 
-        //System.out.println(toStringAll(all) + "\n" + all.size());
+        /* For the 4 by 4 case, I found that there were 9408 total row groupings from the 86 subsets. Now after filtering all the unique row
+           groupings, I found that there were a total of 392 row groupings. If my assumptions are correct, once filter the filtered uniqueRows 
+           by finding columns within those rows, then there should be a total of 220 unique row groupings?
+        */
 
-        //This is all the groupings of rows and columns
-        System.out.println(toStringRowsCols(findColumnsGivenRows(filterUniqueRows(all, n), n)) + "Total number of groupings: " + findColumnsGivenRows(filterUniqueRows(all, n), n).size());
-
+        all = filterUniqueRows(all, n); // We only want the unique row groupings (ie: no grouping has more than n - 2 similar rows).
         
+        // now we must filter all the columns in those row groupings
+        System.out.println(toStringRowsCols(findColumnsGivenRows(all, n))); // At this point there are some rows that are 90 degree transforms in here (we need to filter those out)
+
         
         List<List<List<Set<Integer>>>> test = findColumnsGivenRows(filterUniqueRows(all, n), n); 
 
@@ -87,51 +90,10 @@ public class MagicSquares {
                 filteredCombo.add(combo.get(i));
             }
         }
-        //System.out.println(filteredCombo + "\n\n" + frequenciesMap(filteredCombo) + "\n");
-        // At this point filteredCombo is a the List of all the sets that can make up the magic square
-
-        // In order to progress forward, we take one of these sets and either assign it to the row or column set. 
-        // From this random set, we collect all the pieces that mkae up the rows and the columns of the magic square.
-        // To ensure that the diagonals are collected as well we sift through the row and column sets to see if there is more than one matching number
-        // If there is more than one matching number its a permutation piece otherwise it may be used to construct the magic square. 
-        // I guess that means we have to loop through both the columns and the rows.
-
-        //System.out.println(filteredCombo.size());
-
-  
         return filteredCombo;
     }
 
-    public static List<List<Set<Integer>>> rowFilterLayer1(List<Set<Integer>> filtered){ // brute force all the row groupings
-        List<List<Set<Integer>>> all = new ArrayList<>();
-        List<Set<Integer>> rows = new ArrayList<>();
-        boolean contains = false;
-        for(Set<Integer> set: filtered){ // go though each one once
-            for(Set<Integer> innerSet: filtered){ // comparison
-                rows.add(set); // initalize this here so that we can reset each time. 
-                for(int n: innerSet){
-                    if(rows.get(0).contains(n)){
-                        contains = true;
-                        break;
-                    }
-                }
-                if(!contains){ // doesn't contain any of the values
-                    rows.add(innerSet);
-                }
-                if(rows.size() > 1){
-                    all.add(rows);
-                }
-                rows = new ArrayList<>(); // delete and restart
-                contains = false;
-
-            }
-
-        }
-
-        return all;
-    }
-
-    // Do the previous step again but now with more subsets
+    // Populate the rows layer by layer by brute forcing each possible combination
     public static List<List<Set<Integer>>> rowFilterLayerPermutations(List<List<Set<Integer>>> list, List<Set<Integer>> filtered){
         List<List<Set<Integer>>> all = new ArrayList<>();
         List<Set<Integer>> rows = new ArrayList<>();
@@ -155,65 +117,58 @@ public class MagicSquares {
                             rows.add(groupSubset); // for every groupSubset that passes the test, add it to the rows.
                         }
                     }
-    
                     if(rows.size() == group.size()){ // if all the subsets are unique add the subset piece.
                         rows.add(subset);
                         all.add(rows);
                     } 
                     rows = new ArrayList<>(); // reset the rows.
                 }
-            } else{
+            } else{ // This is just for when the inital list is empty
                 rows.add(subset);
                 all.add(rows);
                 rows = new ArrayList<>();
             }
-        }
-            
+        }    
         return all;
     }
 
-    // Now that we have all the row groupings,
-    // we know that the columns of all magic squares are in those groupings
-    // can we loop through the set of all row groupings and find columns for those groups? 
-
-    // SIDENOTE WE MUST FIRST FIND ALL UNIQUE ROW GROUPINGS BEFORE WE CAN MOVE FORWARD
-
+    // Since there are possibilities for the same row grouping (turned 180 for example) we want to get only one such instance so to filter 
+    // those similarities out we do the next method 
     public static List<List<Set<Integer>>> filterUniqueRows (List<List<Set<Integer>>> all, int n){
         List<List<Set<Integer>>> uniqueRows = new ArrayList<>();
         int count = 0;
         int maxCount = 0;
-        int index = 0;
         // loop through each of the groups
         // comparing them to the rest of the groups
-        for(List<Set<Integer>> group: all){
-                index++;
-                maxCount = 0;
-            for(int i = index; i < all.size(); i++){ // we have to count the max after this entire loop is done
-                // compare all the subsets in the group set with the grouping from this loop,
-                count = 0; // for each new group reset the count. 
-                for(Set<Integer> groupSet: group){ 
-                    if(all.get(i).contains(groupSet)){
-                        count++;
+        for(int i = 0; i < all.size(); i++){ // loop through the entire list of row groupings
+            for(int j = i + 1; j < all.size(); j++){ // loop through the entire list of row groupings again
+                count = 0; // reset the count for the next iteration
+                maxCount = 0; //reset the maxCount as well 
+                // compare all the subsets in the group set with the grouping from this loop
+                for(int k = 0; k < all.get(i).size(); k++){
+                    if(all.get(j).contains(all.get(i).get(k))){
+                        count++; // keep track of how many similar rows there are (Logically speaking there cannot be more than n - 1 many non-unique rows because the fourth row will always be the same)
                     }
                 }
-                
-                if(count == n){ // if at any point another set with the same rows was found break this loop and move onto the next row
+                if(count >= n - 1){ // if at any point we find another row grouping with the same rows stop comparing and move on. 
                     maxCount = count;
                     break;
-                } else {
-                    if(count > maxCount){
-                        maxCount = count;
-                    }
+                }
+
+                if(count > maxCount){
+                    maxCount = count;
                 }
             }
-            if(maxCount < n){
-                uniqueRows.add(group);
+            if(maxCount < n - 1){ // The count must be less than n - 1 because having n - 1 same rows implies that the last row will be the same
+                    // If this condition is met then the outside row grouping is unique to the rest of the set of row groups
+                    uniqueRows.add(all.get(i));
             }
         }
-
         return uniqueRows;
     }
 
+    // Now we make a new list where we find all possible columns for the unique rows
+    // In the method following that we check and filter any rows with columns that exist with columns with the same row. 
     public static List<List<List<Set<Integer>>>> findColumnsGivenRows(List<List<Set<Integer>>> uniqueGroupings, int n){
         List<List<List<Set<Integer>>>> groupings = new ArrayList<>();
         List<List<Set<Integer>>> group = new ArrayList<>();
@@ -221,11 +176,11 @@ public class MagicSquares {
         int index = 0;
 
         // We have the groupings for all unique magic squares of size n and now must combine these to see which rows match with which columns
-        for(List<Set<Integer>> groups: uniqueGroupings){
+        for(List<Set<Integer>> groups: uniqueGroupings){ // For each row grouping in the uniqueGrouping set
             index++;
-            for(int i = index; i < uniqueGroupings.size(); i++){
-                for(Set<Integer> groupsSet: groups){
-                    for(int j = 0; j < uniqueGroupings.get(i).size(); j++){
+            for(int i = index; i < uniqueGroupings.size(); i++){ // For each grouping in the uniqueGrouping set
+                for(Set<Integer> groupsSet: groups){ // For each row in the row grouping 
+                    for(int j = 0; j < uniqueGroupings.get(i).size(); j++){  
                         count = 0;
                         for(int k: uniqueGroupings.get(i).get(j)){
                             if(groupsSet.contains(k)){
@@ -233,7 +188,7 @@ public class MagicSquares {
                             }
                         }
                         if(count != 1){
-                            break; // keeps the value of count| Need to get the next iteration of i. 
+                            break; // keeps the value of count | Need to get the next iteration of i. 
                         }
                     }
                     if(count != 1){
