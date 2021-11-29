@@ -2,7 +2,10 @@ import java.util.*;
 
 public class MagicSquares {
     public static void main(String[] args){
+        final long startTime = System.currentTimeMillis();
         chains(4);
+        final long elapsedTimeMillis = System.currentTimeMillis() - startTime;
+        System.out.println("Total time to finish in milliseconds: " + elapsedTimeMillis);
     }
 
     public static void chains(int n){
@@ -10,10 +13,7 @@ public class MagicSquares {
         List<Integer> nums = numbers(n); // create a list of all the number permutations 
         List<Set<Integer>> combos = getSubsets(nums, n); // find all unique sets of size n
         List<Set<Integer>> filteredComboList = filteredCombos(combos, value, n); // filter those sets to those that sum up to the calculated value.
-
         // At this point all we have are the subsets of size n that sum to the magic value
-
-        
         List<List<Set<Integer>>> all = new ArrayList<>(); // This will be the placeholder that will eventually have all the row groupings
 
         for(int i = 0; i < n ; i++){ // We need to do this method n times because we are filling up each row grouping one row at a time
@@ -27,40 +27,45 @@ public class MagicSquares {
            by finding columns within those rows, then there should be a total of 220 unique row groupings?
         */
 
+        //System.out.println(all);
         all = filterUniqueRows(all, n); // We only want the unique row groupings (ie: no grouping has more than n - 2 similar rows).
         
-        // now we must filter all the columns in those row groupings
-        System.out.println(toStringRowsCols(findColumnsGivenRows(all, n))); // At this point there are some rows that are 90 degree transforms in here (we need to filter those out)
+        //System.out.println(all);
+        List<List<List<Set<Integer>>>> rowColGroupings = findColumnsGivenRows(all, n); // for the n = 4 case there are 954
+        //System.out.println(rowColGroupings);
+        rowColGroupings = filterRowColGroupings(rowColGroupings); // for the n = 4 case, there are 477 so its working!!
+        //System.out.println(rowColGroupings);
+        // Now that we have all unique row/col groupings, find the diagonals that match with those row/col groupings
+        rowColGroupings = findDiagonals(rowColGroupings, filteredComboList); // There are still 477 of them at this point now with their respective diagonals
+        //System.out.println(rowColGroupings);
 
-        
-        List<List<List<Set<Integer>>>> test = findColumnsGivenRows(filterUniqueRows(all, n), n); 
-
-        
-        //System.out.println(toStringRowsCols(possibleMagicSquares(findDiagonals(test, filteredComboList))));
-        //System.out.println("Total results: " + possibleMagicSquares(findDiagonals(test, filteredComboList)).size());
-        
-        
-        List<List<List<Set<Integer>>>> almostDone = possibleMagicSquares(findDiagonals(test, filteredComboList));
-
-        //The code gives all possible arrangements of rows cols and diagonals (103 of them).
-        //System.out.println(toStringRowsCols(almostDone) + "\n" + almostDone.size());
-
-        List<List<List<Set<Integer>>>> cleanedAlmostDone = new ArrayList<>();
-        cleanedAlmostDone = cleaningDiagonals(almostDone);
-        //The code below gives 880 results
-        //System.out.println(toStringRowsCols(cleanedAlmostDone) + "\n" + cleanedAlmostDone.size()); 
-        //The code below gives 514 results
-        //filterImpossibleSquares(cleanedAlmostDone);
+        rowColGroupings = possibleMagicSquares(rowColGroupings); // Now there are only 103 with diagonals.size() >= 2.
+        //System.out.println(rowColGroupings);
+        rowColGroupings = cleaningDiagonals(rowColGroupings); // There are 880 combinations of row/col/diag with diag size = 2.
+        //System.out.println(rowColGroupings);
+        rowColGroupings = filterDuplicateDiagonals(rowColGroupings); // I DID IT LET'S GOOOO!!!!!
+        // filter the diagonals
+        List<int[][]> magicSquares = new ArrayList<>();
+        magicSquares = filterImpossibleSquares(rowColGroupings, n); // This completes the info needed to build a magic square now we must build it. 
     
-        //filteredDiagonalMagicSquares(almostDone, n);
+        /*for(int j = 0; j < magicSquares.size(); j++){
+            System.out.println(Arrays.deepToString(magicSquares.get(j)) + "\n");
+        }
+        System.out.println(magicSquares.size());
+        */
 
-        
-        //System.out.println(findDiagonals(findColumnsGivenRows(filterUniqueRows(all, n), n), filteredComboList).toString());
+        magicSquares = completedMagicSquaresList(magicSquares, n);
 
-        //System.out.println(toStringAll(all) + "\n\n" + "Total Row Combinations: " +  all.size() + "\n" + filterUniqueRows(all, n) + "\n" + filterUniqueRows(all, n).size());
-        //System.out.println("Total number of rows: " + size + "\n\n" + toStringRowsCols(filterUniqueRows(all, n)) + "\n\n\nTotal number of unique row combinations: " + filterUniqueRows(all, n).size());
-        //System.out.println(findColumnsGivenRows(all, n));
-        //return filteredComboList;
+        /*
+        for(int j = 0; j < magicSquares.size(); j++){
+            System.out.println(Arrays.deepToString(magicSquares.get(j)) + "\n");
+        }
+        */
+
+        System.out.println(toStringMagicSquares(magicSquares, n));
+        System.out.println(magicSquares.size());
+
+
     }
 
     // calculate how much the sum of each row/col/diag will equal to.
@@ -141,9 +146,11 @@ public class MagicSquares {
         // loop through each of the groups
         // comparing them to the rest of the groups
         for(int i = 0; i < all.size(); i++){ // loop through the entire list of row groupings
-            for(int j = i + 1; j < all.size(); j++){ // loop through the entire list of row groupings again
+            count = 0; // reset the count for the next iteration
+            maxCount = 0; //reset the maxCount as well
+            for(int j = i + 1; j < all.size(); j++){ // loop through the entire list of row groupings again 
                 count = 0; // reset the count for the next iteration
-                maxCount = 0; //reset the maxCount as well 
+                maxCount = 0; //reset the maxCount as well
                 // compare all the subsets in the group set with the grouping from this loop
                 for(int k = 0; k < all.get(i).size(); k++){
                     if(all.get(j).contains(all.get(i).get(k))){
@@ -173,38 +180,58 @@ public class MagicSquares {
         List<List<List<Set<Integer>>>> groupings = new ArrayList<>();
         List<List<Set<Integer>>> group = new ArrayList<>();
         int count = 0;
-        int index = 0;
+        boolean condition = false;
 
         // We have the groupings for all unique magic squares of size n and now must combine these to see which rows match with which columns
-        for(List<Set<Integer>> groups: uniqueGroupings){ // For each row grouping in the uniqueGrouping set
-            index++;
-            for(int i = index; i < uniqueGroupings.size(); i++){ // For each grouping in the uniqueGrouping set
-                for(Set<Integer> groupsSet: groups){ // For each row in the row grouping 
-                    for(int j = 0; j < uniqueGroupings.get(i).size(); j++){  
-                        count = 0;
-                        for(int k: uniqueGroupings.get(i).get(j)){
-                            if(groupsSet.contains(k)){
+        for(int i = 0; i < uniqueGroupings.size(); i++){ // outer loop for row groups
+            for(int j = 0; j < uniqueGroupings.size(); j++){ // inner loop for row groups
+                condition = true; 
+                for(int k = 0; k < uniqueGroupings.get(i).size(); k++){ // loop through all of the rows in the outer loop row group
+                    for(int l = 0; l < uniqueGroupings.get(j).size(); l++){ // loop through the rows in the inner loop row group
+                        count = 0; // reset the count for each new inner loop row 
+                        for(int num: uniqueGroupings.get(i).get(k)){
+                            if(uniqueGroupings.get(j).get(l).contains(num)){
                                 count++;
                             }
                         }
-                        if(count != 1){
-                            break; // keeps the value of count | Need to get the next iteration of i. 
+
+                        if (count != 1){ // if at any point we find an inner loop with 0 or more than 1 similarity in two rows, then we know that those row/column groupings are impossible so skip them. 
+                            condition = false;
+                            break;
                         }
                     }
-                    if(count != 1){
-                        break; // need to get the next iteration of i since not a column match. 
+                    if(!condition){ // if the condition is failed we move onto the next inner loop (no need to search the remaining rows)
+                        break;
                     }
                 }
-                if(count == 1){ // here if count = 1 for the last comparision -> count = 1 for all the comparisons since it didn't break which means a column match has been found. 
-                    group.add(groups);
+                if(condition){ // if we get to this point and the condition is satisfied, then add those row/column gropings.
                     group.add(uniqueGroupings.get(i));
+                    group.add(uniqueGroupings.get(j));
                     groupings.add(group);
-                    group = new ArrayList<>();
                 }
+                group = new ArrayList<>();
             }
         }
-
         return groupings;
+    }
+
+    // Now we need to see if there are groups with rows = other columns and those colums rows = the inital rows columns
+    public static List<List<List<Set<Integer>>>> filterRowColGroupings(List<List<List<Set<Integer>>>> rowColGroupings){
+        List<List<List<Set<Integer>>>> uniqueRowColGroupings = new ArrayList<>();
+        boolean condition = true;
+        for(int i = 0; i < rowColGroupings.size(); i++){
+            condition = true;
+            for(int j = i + 1; j < rowColGroupings.size(); j++){
+                if(rowColGroupings.get(i).get(0).equals(rowColGroupings.get(j).get(1)) && rowColGroupings.get(i).get(1).equals(rowColGroupings.get(j).get(0))){ // if the row grouping is equal to another column grouping
+                    condition = false;
+                    break; // There is no need to keep searching just move on to the next row grouping 
+                }
+            }
+            if(condition){ // if we fail to find a row/col col/row symmetry then the initial row is unique
+                uniqueRowColGroupings.add(rowColGroupings.get(i));
+            }
+        }
+        return uniqueRowColGroupings;
     }
 
     // Now that all the rows and columns have been found brute force search for diagonals. 
@@ -266,143 +293,6 @@ public class MagicSquares {
         return filtered;
     }
 
-    // Interestingly some of these diagonal pairs dont work and others have more than two
-    // Lets combine the relation idea and return a list of groupings with diagonals that work (or just the rows/columns in their 4 pair matches)
-
-    public static void filteredDiagonalMagicSquares(List<List<List<Set<Integer>>>> groups, int n){
-        List<HashMap<List<List<Set<Integer>>>, HashMap<Integer, Integer>>> totalList = new ArrayList<>();
-        HashMap<List<List<Set<Integer>>>, HashMap<Integer, Integer>> frequencyGroups = new HashMap<>();
-        HashMap<Integer, Set<Integer>> keepTrackofRows = new HashMap<>();
-        
-        List<List<List<Set<Integer>>>> finalList = new ArrayList<>();
-        List<List<Set<Integer>>> cleaned = new ArrayList<>();
-        List<Set<Integer>> diagonals = new ArrayList<>();
-        List<Set<Integer>> fourSets = new ArrayList<>();
-        HashMap<Integer, Integer> rowRelations = new HashMap<>();
-
-        ArrayList<Integer> discoveredSet = new ArrayList<>();
-
-        boolean relation = true;
-        boolean contains = false;
-        int count = 0;
-        
-        for(List<List<Set<Integer>>> group: groups){
-            for(int i = 0; i < group.get(2).size(); i++){ // outer diagonal group
-                for(int j = i + 1; j < group.get(2).size(); j++){ // inner diagonal group
-
-                    /* special instance when there is two numbers that are the same in the evens case
-                    if(n%2 == 0){
-                        contains = false;
-                        for(int num: group.get(2).get(j)){
-                            if(group.get(2).get(i).contains(num)){
-                                contains = true;
-                                break;
-                            }
-                        }
-                        if(contains){ // move onto the next diagonal 
-                            break;
-                        }
-                    }
-                    */
-                    
-                    
-                    diagonals.add(group.get(2).get(i));
-                    diagonals.add(group.get(2).get(j));
-                    // find the row with the outer group number
-                    for(int l: group.get(2).get(i)){ // the numbers in the outer loop
-                        count = 0; // reset the count
-                        for(int k = 0; k < group.get(0).size(); k++){ // loop through to find the row with the otter number
-                            // reset k each time this loop resets.
-                            if(group.get(0).get(k).contains(l)){ // find the row with the outer group number
-                                // with the outer group number row found, search this row for the opposing diagonal number
-                                for(int m: group.get(2).get(j)){
-                                    if(group.get(0).get(k).contains(m)){ // if you found a row matching keep track of it
-                                        rowRelations.put(l, m); // with this done move onto the next outer diagonal number
-                                        keepTrackofRows.put(m, group.get(0).get(k));
-
-                                        count ++;
-                                        break;
-                                    }
-                                }
-                            }
-                            if(count == 1){ // the mapping was found no need to search the rest of the rows. 
-                                break;
-                            }
-                        }
-                    }// Repeat this for loop for the other diagonal 
-
-                    for(int l: group.get(2).get(j)){ // the numbers in the outer loop
-                        count = 0; // reset the count
-                        for(int k = 0; k < group.get(1).size(); k++){ // loop through to find the col with the other number
-                            // reset k each time this loop resets.
-                            if(group.get(1).get(k).contains(l)){ // find the row with the outer group number
-                                // with the outer group number row found, search this row for the opposing diagonal number
-                                for(int m: group.get(2).get(i)){
-                                    if(group.get(1).get(k).contains(m)){
-                                        rowRelations.put(l, m); // with this done move onto the next outer diagonal number
-                                        keepTrackofRows.put(m, group.get(1).get(k));
-                                        count ++;
-                                        break;
-                                    }
-                                }
-                            }
-                            if(count == 1){ // the mapping was found no need to search the rest of the rows. 
-                                break;
-                            }
-                        }
-                    }
-                    
-                    /*
-                    for(int start: diagonals.get(0)){
-                        if(!discoveredSet.contains(start)){
-                            int one = rowRelations.get(start);
-                            int two = rowRelations.get(one);
-                            int three = rowRelations.get(two);
-                            int four = rowRelations.get(three);
-                            if(start != four){ 
-                                relation = false;
-                                break;
-                            }
-
-                            fourSets = new ArrayList<>();
-                            discoveredSet.add(one);
-                            discoveredSet.add(two);
-                            discoveredSet.add(three);
-                            discoveredSet.add(four);
-                            fourSets.add(keepTrackofRows.get(one));
-                            fourSets.add(keepTrackofRows.get(two));
-                            fourSets.add(keepTrackofRows.get(three));
-                            fourSets.add(keepTrackofRows.get(four));
-                            cleaned.add(fourSets);
-                            
-                        }
-                    }
-                    */
-
-                    if(relation){ // if it's a relation all we need to do is to return the value of the rows/cols/diags
-                        cleaned.add(group.get(0));
-                        cleaned.add(group.get(1)); // delete the diagonals
-                        cleaned.add(diagonals); // insert the new diagonals
-                        finalList.add(cleaned);
-                        
-                        frequencyGroups.put(cleaned, rowRelations);
-                        totalList.add(frequencyGroups); 
-                    }
-
-                    discoveredSet = new ArrayList<>();
-                    diagonals = new ArrayList<>();
-                    rowRelations = new HashMap<>();
-                    cleaned = new ArrayList<>();
-                    frequencyGroups = new HashMap<>();
-                    relation = true;
-                    // This works but instead of adding it to a larger set can we check for relation condition on the spot and only add those that pass those conditions? 
-                }
-            }
-        }
-        //System.out.println(totalList.toString() + "\n\n" + totalList.size());
-        System.out.println(toStringRowsCols(finalList) + "\n" + finalList.size());
-    }
-
     // The last method was a mess so let's make a method that takes the list of row/col groupings with their possible diagonals and return a complete list of all the combinations 
     public static List<List<List<Set<Integer>>>> cleaningDiagonals(List<List<List<Set<Integer>>>> list){
         List<List<List<Set<Integer>>>> completedList = new ArrayList<>();
@@ -410,7 +300,7 @@ public class MagicSquares {
         List<Set<Integer>> diagonals = new ArrayList<>();
         for(List<List<Set<Integer>>> group: list){ // for each row/col/diag grouping
             for(int i = 0; i < group.get(2).size(); i++){
-                for(int j = 1; j < group.get(2).size(); j++){
+                for(int j = i + 1; j < group.get(2).size(); j++){
                     diagonals.add(group.get(2).get(i));
                     diagonals.add(group.get(2).get(j));
                     tempList.add(group.get(0));
@@ -428,9 +318,10 @@ public class MagicSquares {
     // Now that we have a clean set of diagonals
     // Check their possibilities, if possible save the grouping if not erase.
 
-    public static void filterImpossibleSquares(List<List<List<Set<Integer>>>> cleanedList){
+    public static List<int[][]> filterImpossibleSquares(List<List<List<Set<Integer>>>> cleanedList, int n){
         List<List<List<Set<Integer>>>> completedList = new ArrayList<>();
         HashMap<Integer, Integer> map = new HashMap<>();
+        List<HashMap<Integer, Integer>> filteredMap = new ArrayList<>();
         
         // Make a case for odd and even
         boolean condition = true;
@@ -456,7 +347,7 @@ public class MagicSquares {
 
             if(condition){ // if the condition has been met then we check for relation otherwise we skip
 
-                /*
+            
 
                 //check all 4 diagonals for simplicity 
                 for(int firstDiagNum: group.get(2).get(0)){ // grab the first diagonal and loop through it's numbers
@@ -486,6 +377,7 @@ public class MagicSquares {
                 } // this completes the relation mapping 
 
                 // now we must check if the relation is met (if so save the group)
+                
                 for(int testRow: group.get(2).get(0)){
                     int one = map.get(testRow);
                     int two = map.get(one);
@@ -494,22 +386,209 @@ public class MagicSquares {
                     if(four != testRow){
                         condition = false;
                         break;
-                    }
-
-                    /* I am not getting the expected output so there is some condition missing and I think it has to do with keeping track of the relations 
+                    } 
+                    /* I am not getting the expected output so there is some condition missing and I think it has to do with keeping track of the relations */
 
                 } // with this if there is no relation we set the condition to false
-                
-                */
-
                 if(condition){ // if the condition is met we keep the group otherwise we don't 
                     completedList.add(group);
+                    filteredMap.add(map);
+                }
+                map = new HashMap<>();
+            }
+        }
+        constructAMagicSquare(completedList, filteredMap, n);
+
+        // Since this function is too long and I don't want to return both the groupings and the hashmaps that is the key to making magic squares,
+        // I'm going to make another function that takes hashmaps and groupings and uses them to make magic squares. 
+
+        return constructAMagicSquare(completedList, filteredMap, n);
+    }
+
+    public static List<int[][]> constructAMagicSquare(List<List<List<Set<Integer>>>> combinations, List<HashMap<Integer, Integer>> filteredMap, int n){
+        // First thing we need is to memoize the search through the hashmap so as to avoid duplicates
+        ArrayList<Integer> searchedThrough = new ArrayList<>();
+
+        // Make the matrix 
+        int[][] magicSquare = new int[n][n]; // first [] is rows second [] is columns ( we only need n - 1 bc we include 0)
+
+        // Make the list that will carry all the matricies
+
+        List<int[][]> listOfMagicSquares = new ArrayList<>();
+
+        // start populating the main daigonals (SEPERATE THESE LOOPS VIA ODD/EVEN)
+        for(int l = 0; l < combinations.size(); l++){
+            int i = 0;
+            for(int diagonal: combinations.get(l).get(2).get(0)){
+                if(n % 2 == 0){ // even case
+                    // iteration to insert via main daigonal
+                    if(!searchedThrough.contains(diagonal)){
+                        magicSquare[i][i] = diagonal;
+                        magicSquare[i][(n - (i + 1))] = filteredMap.get(l).get(diagonal);
+                        magicSquare[(n - (i + 1))][(n - (i + 1))] = filteredMap.get(l).get(magicSquare[i][(n - (i + 1))]);
+                        magicSquare[(n - (i + 1))][i] = filteredMap.get(l).get(magicSquare[(n - (i + 1))][(n - (i + 1))]);
+                        searchedThrough.add(magicSquare[i][i]);
+                        searchedThrough.add(magicSquare[i][(n - (i + 1))]);
+                        searchedThrough.add(magicSquare[(n - (i + 1))][(n - (i + 1))]);
+                        searchedThrough.add(magicSquare[(n - (i + 1))][i]);
+                        i++;
+                    }
+                    
+                } else { // odd case
+                    // its the same as the even case except we need to take into account the center
+                    if(filteredMap.get(l).get(diagonal) == diagonal){ // this is the center
+                        magicSquare[n/2][n/2] = diagonal;
+                        searchedThrough.add(diagonal);
+                    } else {
+                        if(!searchedThrough.contains(diagonal)){
+                            magicSquare[i][i] = diagonal;
+                            magicSquare[i][(n - (i + 1))] = filteredMap.get(l).get(diagonal);
+                            magicSquare[(n - (i + 1))][(n - (i + 1))] = filteredMap.get(l).get(magicSquare[i][(n - (i + 1))]);
+                            magicSquare[(n - (i + 1))][i] = filteredMap.get(l).get(magicSquare[(n - (i + 1))][(n - (i + 1))]);
+                            searchedThrough.add(magicSquare[i][i]);
+                            searchedThrough.add(magicSquare[i][(n - (i + 1))]);
+                            searchedThrough.add(magicSquare[(n - (i + 1))][(n - (i + 1))]);
+                            searchedThrough.add(magicSquare[(n - (i + 1))][i]);
+                            i++;
+                        }
+                    }
+
+                }
+            } 
+            listOfMagicSquares.add(magicSquare);
+            searchedThrough = new ArrayList<>();
+            magicSquare = new int[n][n];
+        }
+        // up to this point all the diagonals have been set. 
+        for(int j = 0; j < listOfMagicSquares.size(); j++){
+            for(int k = 0; k < n; k++){
+                for(int m = 0; m < n; m++){
+                    if(listOfMagicSquares.get(j)[k][m] == 0){ // we need to update if its zero
+                        // we need to search through row k and column m from the original set
+                        // magic squares[k][k] refers to the row diag
+                        // magic squares [m][m] refers to the column diag
+                        for(Set<Integer> rows: combinations.get(j).get(0)){
+                            for(Set<Integer> columns: combinations.get(j).get(1)){
+                                if(rows.contains(listOfMagicSquares.get(j)[k][k]) && columns.contains(listOfMagicSquares.get(j)[m][m])){ // identify the row/col
+                                    for(int num: rows){
+                                        if(columns.contains(num)){
+                                            listOfMagicSquares.get(j)[k][m] = num;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
 
-        System.out.println(toStringRowsCols(completedList) + "\n" + completedList.size());
+        return listOfMagicSquares;
+    }
 
+    // There is one more filter left to do 
+    //SIDENOTE MAKE SURE THAT THE LAST UNIQUE ONE IS GETTING COUNTED IF THE STEP BEFORE IS NOT UNIQUE
+
+    public static List<List<List<Set<Integer>>>> filterDuplicateDiagonals(List<List<List<Set<Integer>>>> rowColDiagGroupings){
+        List<List<List<Set<Integer>>>> filtered = new ArrayList<>();
+        boolean condition = true;
+
+        for(int i = 0; i < rowColDiagGroupings.size(); i++){
+            condition = true;
+            for(int j = i + 1; j < rowColDiagGroupings.size(); j++){
+                if(rowColDiagGroupings.get(i).get(0) == rowColDiagGroupings.get(j).get(0) && rowColDiagGroupings.get(i).get(1) == rowColDiagGroupings.get(j).get(1)){ // if the row and the columns are the same
+                    //check if the diagonals are the same
+                    if(rowColDiagGroupings.get(i).get(2).contains(rowColDiagGroupings.get(j).get(2).get(0)) && rowColDiagGroupings.get(i).get(2).contains(rowColDiagGroupings.get(j).get(2).get(1))){// if the diagonals are the same then fail the condition
+                        condition = false;
+                    }
+                }
+                if(!condition){ // if we fail then move on
+                    break;
+                }
+            }
+            if(condition){
+                filtered.add(rowColDiagGroupings.get(i));
+            }
+        }
+        return filtered;
+    }
+
+    public static int[][] matrixMultiply(int[][] matrixOne, int[][] matrixTwo, int n){ // always multiply matrixone into matrix two
+        int[][] matrixThree = new int[n][n];
+
+        for(int i = 0; i < n; i++){ // num of times done
+            for(int j = 0; j < n; j++){ // rows 
+                for(int k = 0; k < n; k++){ // columns
+                    matrixThree[i][j] += matrixOne[i][k] * matrixTwo[k][j];
+                }
+            }
+        }
+        return matrixThree;
+    }
+
+    public static int[][] reflection(int n){
+        int[][] reflection = new int[n][n];
+
+        for(int i = 0; i < n; i ++){
+            reflection[i][n - (i + 1)] = 1;
+        }
+
+        return reflection;
+    }
+
+    public static int[][] transpose(int[][] initalMatrix, int n){
+        int[][] transpose = new int[n][n];
+
+        for(int i = 0; i < n; i++){
+            for (int j = 0; j < n; j++){
+                transpose[i][j] = initalMatrix [j][i];
+            }
+        }
+        return transpose;
+    }
+
+    // Given a list of completed matrices, compute all the matrix multiplications 
+
+    public static List<int[][]> completedMagicSquaresList(List<int[][]> initialList, int n){
+        List<int[][]> firstOutput = new ArrayList<>();
+        List<int[][]> finalOutput = new ArrayList<>();
+
+        int[][] reflection = reflection(n);
+        int[][] kleinOne = {{0,0,1,0}, {1,0,0,0}, {0,0,0,1}, {0,1,0,0}};
+        int[][] kleinTwo = {{1,0,0,0}, {0,0,1,0}, {0,1,0,0}, {0,0,0,1}};
+        int[][] kleinThree = {{0,1,0,0}, {1,0,0,0}, {0,0,0,1}, {0,0,1,0}};
+        if(n == 4){
+            for(int i = 0; i < initialList.size(); i++){
+                firstOutput.add(initialList.get(i));
+                firstOutput.add(matrixMultiply(matrixMultiply(kleinOne, initialList.get(i), n), kleinOne, n));
+                firstOutput.add(matrixMultiply(matrixMultiply(kleinTwo, initialList.get(i), n), kleinTwo, n));
+                firstOutput.add(matrixMultiply(matrixMultiply(kleinThree, initialList.get(i), n), kleinThree, n));
+            }
+        } else { // for now we do nothing for other sizes. 
+            for(int i = 0; i < initialList.size(); i++){
+                firstOutput.add(initialList.get(i));
+            }
+        }
+
+        for(int i = 0; i < firstOutput.size(); i++){
+            int[][] r1 = firstOutput.get(i); // identity
+            int[][] r2 = matrixMultiply(transpose(r1, n), reflection, n); // rotation by 90 degrees
+            int[][] r3 = matrixMultiply(transpose(r2, n), reflection, n); // rotation by 180 degrees
+            int[][] r4 = matrixMultiply(transpose(r3,n), reflection, n); // rotation by 270 degrees
+            int[][] sr1 = matrixMultiply(r1, reflection, n); // vertical reflection
+            int[][] sr2 = matrixMultiply(transpose(sr1, n), reflection, n); // vertical reflection + 90 degrees
+            int[][] sr3 = matrixMultiply(transpose(sr2, n), reflection, n); // vertical reflection + 180 degrees
+            int[][] sr4 = matrixMultiply(transpose(sr3, n), reflection, n); // vertical reflection + 270 degrees
+            finalOutput.add(r1);
+            finalOutput.add(r2);
+            finalOutput.add(r3);
+            finalOutput.add(r4);
+            finalOutput.add(sr1);
+            finalOutput.add(sr2);
+            finalOutput.add(sr3);
+            finalOutput.add(sr4);
+        }
+        return finalOutput;
     }
 
     // create a hashMap of frequencies
@@ -585,11 +664,22 @@ public class MagicSquares {
                 if(j == 0){
                     str += "Rows: " + all.get(i).get(j);
                 } else if(j == 1){
-                    str +="\nColumns: " + all.get(i).get(j);
+                    str +=" Columns: " + all.get(i).get(j) + "\n";
                 } else{
-                    str +="\nDiagonals: " + all.get(i).get(j) + "\n\n";
+                    str +="Diagonals: " + all.get(i).get(j) + "\n\n";
                 }
             }
+        }
+        return str;
+    }
+
+    public static String toStringMagicSquares(List<int[][]> squares, int n){
+        String str = "Start \n";
+        for(int i = 0; i < 200; i++){
+            for(int j = 0; j < n; j++){
+                str += Arrays.toString(squares.get(i)[j])+"\n";
+            }
+            str += "\n";
         }
         return str;
     }
