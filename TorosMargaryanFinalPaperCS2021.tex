@@ -1,0 +1,258 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{fullpage}
+\usepackage{amsbsy,amsmath,amsthm,amssymb,color,verbatim,hyperref,mathtools}
+\usepackage{natbib}
+\usepackage{setspace}
+\usepackage{authblk}
+\usepackage{indentfirst}
+
+\newcommand\Myperm[2][^m]{\prescript{#1\mkern-2.5mu}{}P_{#2}}
+\newcommand\PermN[2][^$n^2$]{\prescript{#1\mkern-2.5mu}{}P_{#2}}
+\newcommand\Mycomb[2][^t]{\prescript{#1\mkern-0.5mu}{}C_{#2}}
+
+\title{Constructing an Efficient Algorithm to Find All Magic Squares of an Arbitrary Size n}
+\author{Toros Margaryan}
+\affil{Department of Computer Science, Occidental College}
+\date{December 2021}
+
+\begin{document}
+
+\maketitle
+
+\section{Special Thanks}
+    I wish to give a special thanks to Professor Justin Li and Professor Paul David from the Computer Science Department at Occidental College and a special thanks to Professor Jeffery Miller and Professor Jim Brown from the Mathematics Department at Occidental College. I would not have been able to come up with much of this project without the help from all these amazing and wise individuals. Thank you all for your patients, advice, and key critiques that have shaped this project into what it is today.   
+\section{Introduction}
+    Magic squares are discrete mathematical structures that don't have many (if any) applications to applicable real world mathematical problems and are primarily studied due to a piqued interest of the structure. As such, some of those who study magic squares may like to study all magic squares to see what (if any) patterns arise for the various sizes of magic squares. As of the writing of this paper, all magic squares of size 3 and 4 have been discovered and documented, and some magic squares of greater sizes have been found, however there is no source that lays all magic squares of an arbitrary size $n$ greater than 4. This leads to the attempted implementation of an algorithm that can determine and find all of the magic squares of an arbitrary size n. Currently, the most elementary brute force method for finding all magic squares of an arbitrary size n has a worst-case time complexity of $O(n^2!)$. In this paper, we will explore some of the properties of magic squares and attempt to come up with an algorithm that can achieve the same goal with a more "efficient" worst-case time complexity.     
+\section{Background}
+
+    A magic square is an $n$ by $n$ matrix whose elements are compromised of the integers 1 through $n^{2}$ (note that none of the integers can repeat) oriented in such a manner that  
+    the sum of the rows, columns, and the diagonal's of said matrix all sum to the same special value (which will be referred to as the magic
+    sum). The magic sum for a given magic square of size n is equivalent to: $(n)(n^2 + 1)/2$.
+    \begin{figure}[h!]
+        \begin{center}
+            \includegraphics[]{3by3MagicSquare.PNG}\\
+            \caption{A 3 by 3 magic square whose row, column, and diagonal sums equal $15$.}\label{}
+        \end{center}
+    \end{figure}
+    
+    Given this definition, it is not difficult to come up with a method to search through every possible orientation of $n^2$ integers within this matrix structure. Unfortunately, using a naive approach to tackle the problem of finding all unique size n magic squares results in a time complexity far greater than what is generally accepted to be "efficient." In one such naive method, one can construct a matrix with the ordered integers $1, 2, \cdots, n^2$, and perform every possible permutation checking if the conditions for a magic square are met by a given instance of said permutation. This algorithm then begs the question, how many possible permutation instances are there to search through for a given n by n matrix? In order to calculate this total, recall the formula to calculate the total number of permutations, where m is the number of objects in the entire set, and where k is the number of objects to be selected from that set: 
+    \begin{center}
+        $\Myperm{k} = \frac{m!}{(m-k)!}\quad$
+    \end{center}
+    In our case for permuting all every possible orientations of $n^2$ integers, there are a total of $n^2$ objects to be selected from (ie: $m = n^2$), and a total of $n^2$ objects to be selected (ie: $k = n^2$). Plugging these values into the formula, we get: 
+    \begin{center}
+        \begin{align*}
+            \PermN{n^2} &= \frac{n^2!}{(n^2-n^2)!}\quad\\
+            &= \frac{n^2!}{0!}\\
+            &= n^2!
+        \end{align*}
+    \end{center}
+    This means that there are a total of $n^2!$ many different orientations of the integers $1, 2, \cdots, n^2$ within the structure of a $n$ by $n$ matrix. In order to find all magic squares of an arbitrary size $n$, we have already determined that this naive algorithm must search through each of these $n^2!$ possible orientations to determine which matrices from the set satisfy the conditions necessary to be considered as magic squares. As such, this algorithm constitutes a worst case time complexity of $O(n^2!)$. Intuitively given the relatively simple conditions that must be met in order for a matrix to be a magic square, there must be some method that can perform this calculation much more efficiently.     
+    
+\section{Literature Review}
+    Before delving into an attempted optimized algorithm a brief introduction to previous work on the topic is called upon. Interestingly, although magic squares have been a niche mathematical topic of interest for a couple of millennium, there hasn't been much work in the face of making an algorithm that can find all of them for an arbitrary size $n$. This is most likely due to a number of reasons. Firstly, the magic squares themselves have little (if any) use for actual application in the real world thus rendering them to be relatively worthless (and generally not worth the investment in time). Secondly, there doesn't seem to be many (if any) reliable properties, beyond those conditions already defined in the magic square definition, that can be used to implement a faster worst case run time complexity (ie: The solution is generally elusive). In other words, while it is not difficult to find some properties that can be exploited for an individual case of magic squares, one could quickly realize by example, that a property that can be used to speed up the search for all magic squares of some arbitrary size $p$, can not be used for some other arbitrary size $q$. This feature is somewhat represented in the current posted literature of Magic squares (ie: there are many papers that describe the process of an efficient algorithm that can be implemented for some specific random sized magic square [most of which focus on finding a single or a couple of magic squares of the given size] but those algorithms can not be used to determine all magic squares of another sized magic square). To further illustrate the fact that it is difficult to find exploitable properties for all magic squares of any size (beyond the already implemented definition conditions), there are currently no papers that define an efficient algorithm to find all magic squares for any given size.  
+    
+    Another reason why no such algorithm has been published before may be because the sheer number of unique magic squares increases dramatically from one size to the next, which implies that beyond a certain size threshold, it may well not be worth attempting an efficient search to find all of them because of how many there are. In fact, according to Ziqi Lin, Sijie Liu, Kai-Tai Fang, and Yuhui Deng in their research article titled, "Generation of all magic squares of order 5 and interesting patterns finding," there are a total of 8, 7040, and 2,202,441,792 magic squares for the sizes $n = 3$, $n = 4$, and $n = 5$ respectively (2016). This jump from 8 to 7040 and from 7040 to 2,202,441,792 implies that the total number of magic squares increases faster than what would be considered as exponential growth. Thus not only would constructing an algorithm that could find all magic squares be fundamentally worthless because of the unknown use of magic squares in problem solving but also the sheer number of them implies that one would need a significant amount of time and computational resources (such as a large amount of memory and a fast cpu) in conjunction with an efficient algorithm to even be able to find all magic squares for any size greater than or equal to 5. With the context of these limitations and insights explored, we may now delve into how I attempted to construct an efficient algorithm to find all magic squares of an arbitrary size $n$. 
+    
+\section{Methods}
+    Given the number of previously mentioned conditions that a matrix must meet to be named a magic square, producing an algorithm that finds all magic squares for a given size requires that the conditions be broken down and solved incrementally. That is to say, my algorithm attempts to construct all magic squares by solving each of the previously mentioned conditions one at a time while considering the solutions to the previous iterations.
+    
+    By considering the condition that the sum of the elements in the rows, columns, and diagonals must be $(n)(n^2 + 1)/2$, we begin the search for finding all magic squares (for any size) by finding all vectors of size $n$ (or matrices of size $1$ x $n$) that contain unique integers that sum to the magic sum. Within the version of the algorithm that coincides with this paper, I achieved this output by recursively producing all vectors of size $n$ with the integers $1,2,\cdots,n^2$, then searched through the list and saving those vectors that meet the magic sum condition. For example, let $n = 3$.
+    \begin{center}
+        Magic sum: $15$.\\
+        Initial List: $[1, 2, 3, 4, 5, 6, 7, 8, 9] \xrightarrow[]{}$ All possible vectors: $[[1,1,1], [1,1,2],\cdots, [1,2,1],[1,2,2],\cdots, [9,9,9]].$\\
+        Filtered vectors that sum to magic sum:$[[1, 5, 9], [1, 6, 8], [2, 4, 9], [2, 5, 8], [2, 6, 7], [3, 4, 8], [3, 5, 7], [4, 5, 6]].$ 
+    \end{center}
+     
+    The first thing an aspiring computer scientist may recognize from this initial problem is that it is essentially the subset sum problem with additional conditions imposed on the input to the problem (being an ordered list of increasing integers). The second and more powerful fact that comes from this output is that we know that all the magic squares will have either rows, columns, or diagonals with these vectors (since no other vector has elements that sum to the magic sum). Note that while these filtered vectors have elements in increasing order, the actual positions of each individual integer has yet to be determined in the grand scope of the entire magic square. The third and most comforting fact that comes from this problem and solution is that it generalizes to any size.
+     
+    With a set of vectors that all sum to the magic sum, the next step is figuring out how one can put them together (similar to a puzzle) in order to guarantee a magic square, and furthermore, to find every possible combination of these vectors to ensure that all magic squares are found. To do this, we begin by searching through these vectors to see which $n$ many combinations will construct a legal set or rows for a magic square. In particular, we consider these filtered outputs with the condition that each integer will show up only once in the magic square. That means, for example, if we select one row to be the vector $[1, 5, 9]$, then we know that the remaining rows will not have the integers 1, 5, or 9 in them, and thus use this new conditional information to find the rest of the rows for this particular magic square. Per the coinciding program with this paper, the process I used to do this was to begin with an empty list of lists of row combinations and to populate them one step at a time. For example, 
+    \begin{center}
+        List of matrices with one row populated:\\$[[[1, 5, 9]], [[1, 6, 8]], [[2, 4, 9]], [[2, 5, 8]], [[2, 6, 7]], [[3, 4, 8]], [[3, 5, 7]], [[4, 5, 6]]]$
+
+        List of matrices with two rows populated:\\$[[[2, 6, 7], [1, 5, 9]], [[3, 4, 8], [1, 5, 9]], [[2, 4, 9], [1, 6, 8]], [[3, 5, 7], [1, 6, 8]]$,\\ 
+        $[[1, 6, 8], [2, 4, 9]], [[3, 5, 7], [2, 4, 9]], [[1, 5, 9], [2, 6, 7]], [[3, 4, 8], [2, 6, 7]]$,\\
+        $[[1, 5, 9], [3, 4, 8]], [[2, 6, 7], [3, 4, 8]], [[1, 6, 8], [3, 5, 7]], [[2, 4, 9], [3, 5, 7]]]$\\
+
+        List of matrices with three rows populated:\\
+        $[[[3, 4, 8], [2, 6, 7], [1, 5, 9]], [[2, 6, 7], [3, 4, 8], [1, 5, 9]],$\\
+        $[[3, 5, 7], [2, 4, 9], [1, 6, 8]], [[2, 4, 9], [3, 5, 7], [1, 6, 8]],$\\
+        $[[3, 5, 7], [1, 6, 8], [2, 4, 9]], [[1, 6, 8], [3, 5, 7], [2, 4, 9]],$\\
+        $[[3, 4, 8], [1, 5, 9], [2, 6, 7]], [[1, 5, 9], [3, 4, 8], [2, 6, 7]],$\\
+        $[[2, 6, 7], [1, 5, 9], [3, 4, 8]], [[1, 5, 9], [2, 6, 7], [3, 4, 8]],$\\
+        $[[2, 4, 9], [1, 6, 8], [3, 5, 7]], [[1, 6, 8], [2, 4, 9], [3, 5, 7]]]$
+    \end{center}
+    Note that a single set of brackets [] represents a single vector, a double set of brackets represents a combination of rows [[]], and a the triple set of brackets represents the all possible row combinations for the given size [[[]]]. Furthermore note how each step adds one new vector to an already determined combination of rows until $n$ many rows have been achieved. 
+      
+    With this output we have guaranteed one thing - by constructing matrices with the rows determined from the previous output, the row sums will always be equal to the magic sum, thus partially fulfilling the conditions to be labeled as a magic square. Unfortunately, due to the iterative method used to determine these row combinations, we have also guaranteed duplicates in the form of row combinations with the same vectors only in different positions. To get rid of these duplicates, we search through the entire set of row combinations and eliminate any combinations that have the same set of vectors (saving only one instance of a given row combination for each unique set of rows). The new output will then become: 
+    \begin{center}
+        List of matrices with three rows populated and each combination of rows are unique: $[[[1, 5, 9], [2, 6, 7], [3, 4, 8]], [[1, 6, 8], [2, 4, 9], [3, 5, 7]]]$
+    \end{center}
+    In other words, for the $n = 3$ case, there are a total of two different row combinations that can be used to find all 8 3 x 3 magic squares. 
+      
+    With the row combinations determined, the next logical step is to determine the possible column orientations for each row combination. Reviewing the conditions for the columns of a magic square, one can clearly see that the same steps that were used to find the row combinations could also be used to determine the column combinations. Since we have already calculated the row combinations, we can take a row combination, and because they are all unique from one another, we may compare that to another row combination to see if the two row combinations can actually be a row and column combination. In essence we loop through the previously output list of row combinations and check to see if for all of the integers in a single vector in one row combination (call it rows1) appears only once in each vector in another row combination (rows2). We perform this check for every single vector in rows1 comparing every integer to the vectors in rows2. For example, compare the first set of row combinations to the second set of row combinations. It is clear that the integers 1, 6, 8 each appear in a different vector in the first row combination. The same is also true for the integers 2, 4, 9, and 3, 5, 7. Thus by performing this comparison, it is clear that the previously determined row combinations for the $n = 3$ case are actually a row and column combination. ie:
+    \begin{center}
+        $[[Rows: [[1, 6, 8], [2, 4, 9], [3, 5, 7]], Columns: [[1, 5, 9], [2, 6, 7], [3, 4, 8]]]]$
+    \end{center}
+    In this case, single and double brackets still mean the same thing, however triple brackets now mean a single combination of rows and columns, and the fourth bracket is to contain every single possible unique row and column combination (particularly for larger sizes of $n$ since $n = 3$ only has one row and column combination). That is, we can construct a matrix with these values in the rows and the columns thus guaranteeing the desired condition is met for the rows and the columns. Note that the individual integer position have still not been determined yet. Instead, up to this point, all the output is implying is that any row has to be one of the three vectors $[1, 6, 8], [2, 4, 9], [3, 5, 7]$, with the individual integers in any orientation within their respective vector, and similarly that any column has to be constructed from one of the three vectors $[[1, 5, 9], [2, 6, 7], [3, 4, 8]]$, once more with the individual integers in any orientation within their respective column vector.
+    
+    With all the possible rows and columns for some size $n$ matrix determined, all that is left is to determine diagonals that satisfy the magic sum and that may fit with the determined row and column combinations. To do this, we perform a single search through the original list of filtered vectors and check to see if each integer value for a given vector appears once in every row vector and once in ever column vector (thus guaranteeing a fit along the diagonal of the matrix) for every row and column combination. For example, given the previously determined row and column combination and a search through the original filtered vectors list, there are only two vectors with integers that appear once in every row and once in every column. ie, the output of this step for $n = 3$ is:
+    \begin{center}
+        $[[Rows: [[1, 6, 8], [2, 4, 9], [3, 5, 7]], Columns: [[1, 5, 9], [2, 6, 7], [3, 4, 8]], Diagonals: [[2, 5, 8], [4, 5, 6]]]]$. 
+    \end{center}
+    Note that in this step, we are finding every possible vector that satisfies the condition that each integer element show up once in each of the vectors in the row and column combinations. That is to say, a single row and column combination may have more than two possible diagonal entries that satisfy this condition. In fact for $n > 3$, you will see a number of interesting properties of the diagonals. For example, there are some row and column combinations for which no such diagonal entries are of the form of the predetermined filtered vector solutions. In other words, some row and column combinations have no possible diagonal entries that can satisfy the conditions necessary to make a magic square. Furthermore there are some row and column combinations with only one such predetermined magic sum vector. Given that a magic square requires two diagonal vectors with whose elements sum to the magic sum, if only one such vector exists, then it is clear that that specific row and column combination can never make a magic square. In addition, some row and column combinations have either two or more than two diagonals. For the case where a row and column combination has only two diagonals (such as the single case mentioned above, all that is left to do is to check if the two diagonals can be put in the same matrix together (and thus guarantee a magic square). For the remaining cases where there are more than 2 diagonal entries, we must simply take the row and column combination and check with all the combinations of 2 diagonal matrices to see if a magic square can be constructed. For example, let a row and column combination have eight possible diagonal vector entries. Recall the formula for combinations, where t is the number of possible entries and s is the number of entries selected (In this case t = 8, and s = 2):
+    \begin{center}
+        \begin{align}
+            \Mycomb{s} &= \frac{t!}{s!(t-s)!}\quad\\
+            &=  \frac{8!}{2!*(6!)}\\
+            &=  \frac{7 * 8}{2}\\
+            &= 28. 
+        \end{align}
+    \end{center}
+    That is, there are 28 different possible row column and diagonal candidates where the rows and columns are the same but their respective diagonals are all the possible unique sets of two diagonals from the previously noted 8 possible diagonal vectors. For the $n = 3$ case, it is clear that these hiccups are avoided since there is only one set of two distinct diagonals for the given row and column combination. In order to preserve the algorithms ability to generalize to all sizes of $n$, this particular search through the diagonals must happen to ensure that all possible magic squares have been searched through. Once every combination of diagonals have been searched through, we now have an output of all the possible row, column, and diagonal candidates and now must search through these candidates to see which can actually become magic squares. In other words, while we have given each set of row and column combination all the possible diagonal entries, we have not yet checked if those diagonal entries can in fact make magic squares (There are some sets of diagonals that can not be put in the same matrix together).
+    
+    This particular step breaks into two separate branches to take into account the special properties of odd sized magic squares compared to the special properties of even sized magic squares. For example, it is clear that all odd size magic squares have a center, which implies that any two diagonals must have one single element with a common value whereas for the even sized magic squares, since they do not have a center, the diagonals must be completely disjoint from one another. This is one condition that we implement to clear out any previous output whose respective size does not match its respective condition. Once more, we see that from our previous example, the rows, columns and diagonals all meet respective condition for the odd case.
+    \begin{center}
+        $[[Rows: [[1, 6, 8], [2, 4, 9], [3, 5, 7]], Columns: [[1, 5, 9], [2, 6, 7], [3, 4, 8]], Diagonals: [[2, 5, 8], [4, 5, 6]]]]$.
+    \end{center}
+     Based on the diagonals, it is clear that the center of this matrix must be 5 in order to possibly construct a magic square. Note however that this condition simply defines the output that meet this one condition and do not yet imply that a magic square can be constructed. That is to say, the rows, columns, and diagonals have all been determined and satisfy the magic sum condition but we we can not yet make a magic square because there is one more implicit condition that needs to be met before one can say a row, column, and diagonal candidate can be used to make a magic square. 
+    
+    The last condition that we must check is to see if the diagonals form a "loop" within themselves. This "loop" simply ensures that there exists a specific position for the elements of the vectors for which a magic square can be constructed. This "loop" also gives use an initial position for which we may populate a magic square(ie: an initial solution). We begin by taking the first element in the first diagonal and find it's respective row vector. Since we know that each row vector has two diagonal entries (one from each diagonal vector), we check to see if that row vector has an element from the opposing diagonal vector. In this case $[2, 5, 8]$ is the first diagonal, $2$ appears in the row vector $[2, 4, 9]$, and of these elements, $4$ is the only other integer that appears in the opposing diagonal $[4, 5, 6]$. Then we take that new value (in this case $4$), and do the same with the column entries. That is $4$ appears in the column vector $[3, 4, 8]$. We see that the value 8 from the opposing diagonal $[2, 5, 8]$ is present and we repeat these steps searching for another row vector with the value 8 in it. We see that that vector is $[1, 6, 8]$, and that vector shares the element $6$ with the opposing diagonal $[4, 5, 6]$. We see that the next column vector with the value $6$ has the element $2$ from the opposing diagonal (the first value we started with. If we repeat these steps with the value $2$, we will see that we have formed a loop. ie:
+    \begin{center}
+        $\begin{bmatrix}
+            2 & 0 & 4 \\
+            0 & 0 & 0 \\
+            6 & 0 & 8
+        \end{bmatrix}$
+    \end{center}.
+    Not only does this step generalize, and removes all impossible entries, it also tells us where we can populate the individual elements so as to preserve the row, column, diagonal vectors that we based this matrix off of. We already know that the center is $5$ for this case (from the diagonals), ie:
+    \begin{center}
+        $\begin{bmatrix}
+            2 & 0 & 4 \\
+            0 & 5 & 0 \\
+            6 & 0 & 8
+        \end{bmatrix}$.
+    \end{center}
+    Then we begin searching for the off diagonals by finding each entry with a zero (recording the a value from the row and a value from the column of that zero) and place the common element within that position. ie, find x:
+    \begin{center}
+        $\begin{bmatrix}
+            2 & x & 4 \\
+            0 & 5 & 0 \\
+            6 & 0 & 8
+        \end{bmatrix}$.
+    \end{center}
+    Locate the row with a $2$ ($[2, 4, 9]$) and the column with a $5$ ($[1, 5, 9]$). We see that the common element is a $9$, so $x = 9$. ie:
+    \begin{center}
+        $\begin{bmatrix}
+            2 & 9 & 4 \\
+            0 & 5 & 0 \\
+            6 & 0 & 8
+        \end{bmatrix}$.
+    \end{center}
+    Repeat this step for each zero we find in the matrix and eventually the output will be a guaranteed magic square (because we have preserved the row, column, and diagonal vectors that each sum to the magic sum). ie:
+    \begin{center}
+        $\begin{bmatrix}
+            2 & 9 & 4 \\
+            7 & 5 & 3 \\
+            6 & 1 & 8
+        \end{bmatrix}$.
+    \end{center}
+    There is one last step (and an additional hiccup) for the $n > 3$ case. In terms of this hiccup for $n > 3$, we must now permute the diagonals and return a list of magic squares where the row, column, and diagonal entries have been preserved but the diagonal entries have been moved around (thus forming a list of unique magic squares). There are some duplicates within this diagonal permutation but it is relatively simple to check and clean any duplicates before proceeding to the next step. The aforementioned last step will produce duplicates within the $n = 3$ case after the last step has been completed, so we will not permute the diagonals for $n = 3$. In the literature review, we indicated that there are 8 unique $n = 3$ magic squares, and so to find them (and thus all the magic squares for any size) we transform the list of magic square outputs (up to diagonal permutation - this hiccup solution allows for this step to be generalizable), and simply return the final output. This transformation entails all the possible rotations and reflections (that preserve the row, column, and diagonal entries) of all the magic squares up to diagonal permutations. For the $n = 3$ case those transformation produce the following eight size $3$ magic squares: 
+    \begin{center}
+        $\begin{bmatrix}
+            2 & 9 & 4 \\
+            7 & 5 & 3 \\
+            6 & 1 & 8
+        \end{bmatrix}$
+        $\begin{bmatrix}
+            6 & 7 & 2 \\
+            1 & 5 & 9 \\
+            8 & 3 & 4
+        \end{bmatrix}$
+        $\begin{bmatrix}
+            8 & 1 & 6 \\
+            3 & 5 & 7 \\
+            4 & 9 & 2
+        \end{bmatrix}$
+        $\begin{bmatrix}
+            4 & 3 & 8 \\
+            9 & 5 & 1 \\
+            2 & 7 & 6
+        \end{bmatrix}$
+        $\begin{bmatrix}
+            4 & 9 & 2 \\
+            3 & 5 & 7 \\
+            8 & 1 & 6
+        \end{bmatrix}$
+        $\begin{bmatrix}
+            8 & 3 & 4 \\
+            1 & 5 & 9 \\
+            6 & 7 & 2
+        \end{bmatrix}$
+        $\begin{bmatrix}
+            6 & 1 & 8 \\
+            7 & 5 & 3 \\
+            2 & 9 & 4
+        \end{bmatrix}$
+        $\begin{bmatrix}
+            2 & 7 & 6 \\
+            9 & 5 & 1 \\
+            4 & 3 & 8
+        \end{bmatrix}$
+    \end{center}
+    These transformations also guarantee that for every possible row, column, diagonal candidate that every possible magic square from each candidate was generated and thus every solution has been found. 
+    
+\section{Evaluation Metrics and Results}
+    While it is true that defining how much more efficient an algorithm is from the elementary brute force method is relatively simple given the time complexity of the more efficient algorithm, determining weather or not an algorithm is actually "efficient" is more of an subjective ordeal. As such, I will define an algorithm as "efficient" if it makes a relatively significant reduction in time complexity compared to the worst-case time complexity of the elementary brute force method for smaller sizes of n. To do this, I will analyze how much savings have been achieved by the "efficient" algorithm as compared to the elementary brute force method. As a side note, it is difficult to determine the precise time complexity of my algorithm because it is difficult to define a function that will define how many filtered vectors there are for a given size $n$. In fact for the n = 3, 4, and 5 sizes, there are a total of 8, 86, and 1394 different filtered magic sum vectors respectively. Assuming that the most time consuming aspect of the efficient algorithm is constructing the combinations of rows from the set of filtered magic sum vectors, We can take these values and calculate the number of instances necessary to be searched for each algorithm and thus use them as a means of comparison.  
+    \begin{center}
+        \begin{align*}
+            n &= 3\\
+            \PermN{n^2} &= \frac{n^2!}{(n^2-n^2)!}\quad\\
+            &= \frac{3^2!}{0!}\\
+            &= 9!\\ 
+            &= 362880.\\
+            \Mycomb{s} &= \frac{8!}{3!(8-3)!}\quad\\
+            &=  \frac{8!}{3!*(5!)}\\
+            &=  \frac{8 * 7 * 6}{6}\\
+            &= 336. 
+        \end{align*}
+    \end{center}
+    Thus the brute force search has approximately $362880$ instances to search through while the more efficient algorithm searches through around a third of that at $336$ instances (a total savings of around 99\%). For $n = 4$:
+    \begin{center}
+        \begin{align*}
+            n &= 4\\
+            \PermN{n^2} &= \frac{n^2!}{(n^2-n^2)!}\quad\\
+            &= \frac{4^2!}{0!}\\
+            &= 16!\\ 
+            &= 2.092279e+13.\\
+            \Mycomb{s} &= \frac{86!}{4!(86-4)!}\quad\\
+            &=  \frac{86!}{4!*(82!)}\\
+            &=  \frac{86 * 85 * 84 * 83}{24}\\
+            &= 2123555. 
+        \end{align*}
+    \end{center}
+    Once more a 99\% savings has been achieved. 
+    \begin{center}
+        \begin{align*}
+            n &= 5\\
+            \PermN{n^2} &= \frac{n^2!}{(n^2-n^2)!}\quad\\
+            &= \frac{5^2!}{0!}\\
+            &= 25!\\ 
+            &= 1.551121e+25.\\
+            \Mycomb{s} &= \frac{1394!}{5!(1394-5)!}\quad\\
+            &=  \frac{1394!}{5!*(1389!)}\\
+            &=  \frac{1394 * 1393 * 1392 * 1391 * 1390}{120}\\
+            &= 4.355257223e+13. 
+        \end{align*}
+    \end{center}
+    Yet again a 99\% savings is achieved however the size of this search has become unpractical even with the efficient algorithm in place. In addition to these findings, on an m1 Macbook laptop, running these algorithms using java and through the vs code IDE, for the $n = 3$ case, the brute force algorithm takes approximately 4 hundred milliseconds to find all size 3 magic squares then terminate while the "efficient" algorithm takes approximately 10 milliseconds to find all size 3 magic squares. For the $n = 4$ case, the brute force algorithm runs into a java heap error (and thus never returns all size 4 magic squares) after approximately 60000 milliseconds whereas the efficient algorithm determines all size 4 magic squares in approximately 3500 milliseconds. With these results, I consider the algorithm to be "efficient" and successful. However there are many other methods that were not attempted that seem to have more promising speeds, thus rendering this algorithm as just "efficient" and not maximally efficient (ie: there is still a lot of room for improvement). In any case the success of this algorithm provides a lot of insight as to how one may make this particular algorithm even faster thus accomplishing the goal of the overall project. 
+    
+    \section{Ethical Considerations}
+    Unfortunately, even in such a beautiful project such as this, there are some ethical issues that can be addressed however they focus more on societal issues as a whole rather than ethical issues that stem from this project. Those issues arise from the fact that some level of mathematics and computer science knowledge is necessary to understand this project and furthermore technology is necessary for individuals to be able to run, debug, or simply view the overall code for this project. For any number of reasons some individuals may not have the mathematical or more likely computer science background to be able to fully grasp the concepts in this paper and similarly, for any number of reasons, individuals may not have access to the technology necessary to enjoy the coded portion of this project. There aren't many if any solutions that I may provide in the context of this paper, however I may suggest that if you find this paper interesting then share it with friends and family alike when you feel it to be useful.   
+    \newpage
+    \bibliographystyle{chicago}
+    \nocite{*}
+    \bibliography{references}
+\end{document}
+
